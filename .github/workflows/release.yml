@@ -26,6 +26,8 @@ jobs:
         distribution: temurin
         java-version: '25'
         cache: gradle
+    - name: Run unit tests
+      run: ./gradlew testDebugUnitTest
     - name: Generate release build
       run: ./gradlew assembleRelease
     - uses: actions/upload-artifact@v7
