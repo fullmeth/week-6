@@ -1,0 +1,71 @@
+name: android build
+
+on:
+  workflow_call:
+    inputs:
+      build-type:
+        required: true
+        type: string
+      retention-days:
+        required: false
+        type: number
+        default: 14
+    secrets:
+      KEYSTORE_BASE64:
+        required: false
+      KEYSTORE_PASSWORD:
+        required: false
+      KEY_ALIAS:
+        required: false
+      KEY_PASSWORD:
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+    steps:
+      - name: Validate build type
+        if: ${{ !contains(fromJSON('[ "debug", "release" ]'), inputs.build-type) }}
+        run: |
+          echo "Unsupported build-type: ${{ inputs.build-type }}"
+          exit 1
+      - name: Enforce secrets for release build
+        if: ${{ inputs.build-type == 'release' && (
+          env.KEYSTORE_BASE64 == '' ||
+          env.KEYSTORE_PASSWORD == '' ||
+          env.KEY_ALIAS == '' ||
+          env.KEY_PASSWORD == ''
+          ) }}
+        run: |
+          echo "Not all the secrets were passed for release build"
+          exit 1
+      - uses: actions/checkout@v7
+      - name: Restore keystore for release variant
+        if: inputs.build-type == 'release'
+        run: |
+          echo "${{ env.KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+      - name: Generate debug build
+        if: inputs.build-type == 'debug'
+        run: ./gradlew assembleDebug
+      - name: Generate release build
+        if: inputs.build-type == 'release'
+        run: ./gradlew assembleRelease
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.build-type }}-${{ github.ref_name }}-artifact
+          path: app/build/outputs/apk/${{ inputs.build-type }}/*.apk
+          retention-days: ${{ inputs.retention-days }}
+          archive: false
