@@ -14,9 +14,7 @@ jobs:
         distribution: temurin
         java-version: '25'
     - name: generate debug build
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug
+      run: ./gradlew assembleDebug
     - uses: actions/upload-artifact@v7
       with:
         name: debug-artifact
