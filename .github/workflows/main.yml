@@ -3,6 +3,10 @@ on:
     branches:
     - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   debug_build:
     name: debug build on push
@@ -13,11 +17,12 @@ jobs:
       with:
         distribution: temurin
         java-version: '25'
+        cache: gradle
     - name: generate debug build
       run: ./gradlew assembleDebug
     - uses: actions/upload-artifact@v7
       with:
         name: debug-artifact
-        path: app/build/outputs/apk/debug/**.apk
+        path: app/build/outputs/apk/debug/*.apk
         retention-days: 7
         archive: false
