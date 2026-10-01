@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             ActionsTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = if (BuildConfig.DEBUG) "debug" else "release",
+                        name = if (BuildConfig.DEBUG) "Debug" else "Release",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
